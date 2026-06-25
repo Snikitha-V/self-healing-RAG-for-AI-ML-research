@@ -11,7 +11,8 @@ from ..retriever.vectorstore import add_documents, ensure_collection
 ARXIV_QUERY = (
     "(cat:cs.AI OR cat:cs.CL) AND "
     "(LLM OR \"retrieval augmented generation\" OR hallucination "
-    "OR \"large language model\" OR RAG)"
+    "OR \"large language model\" OR RAG) AND "
+    "submittedDate:[202301010000 TO 202412312359]"
 )
 
 
@@ -52,9 +53,6 @@ def fetch_arxiv_papers(max_results: int = 10000) -> list[dict]:
 
     papers = []
     for result in tqdm(client.results(search), desc="Fetching papers"):
-        if result.published.year < 2023 or result.published.year > 2024:
-            continue
-
         papers.append({
             "page_content": result.summary,
             "metadata": {

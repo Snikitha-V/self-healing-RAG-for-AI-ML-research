@@ -1,3 +1,4 @@
+import hashlib
 import os
 
 from qdrant_client import QdrantClient
@@ -28,10 +29,14 @@ def ensure_collection(dim: int = 384):
         )
 
 
+def _make_id(text: str) -> int:
+    return int(hashlib.md5(text.encode("utf-8")).hexdigest()[:8], 16)
+
+
 def add_documents(docs: list[dict]):
     client = get_client()
     embedder = get_embedder()
-    dim = embedder.get_sentence_embedding_dimension()
+    dim = embedder.get_embedding_dimension()
     ensure_collection(dim)
 
     texts = [d["page_content"] for d in docs]
@@ -39,11 +44,11 @@ def add_documents(docs: list[dict]):
 
     points = [
         PointStruct(
-            id=idx,
+            id=_make_id(d["page_content"]),
             vector=vec,
             payload={"text": d["page_content"], "metadata": d.get("metadata", {})},
         )
-        for idx, (d, vec) in enumerate(zip(docs, vectors))
+        for d, vec in zip(docs, vectors)
     ]
     client.upsert(collection_name=COLLECTION_NAME, points=points)
 
@@ -51,16 +56,17 @@ def add_documents(docs: list[dict]):
 def similarity_search(query: str, k: int = 4) -> list[dict]:
     client = get_client()
     embedder = get_embedder()
-    dim = embedder.get_sentence_embedding_dimension()
+    dim = embedder.get_embedding_dimension()
     ensure_collection(dim)
 
     query_vector = embed_texts([query])[0]
-    results = client.search(
+    response = client.query_points(
         collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
+        query=query_vector,
         limit=k,
+        with_payload=True,
     )
     return [
         {"page_content": r.payload["text"], "metadata": r.payload.get("metadata", {})}
-        for r in results
+        for r in response.points
     ]
