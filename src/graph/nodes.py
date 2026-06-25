@@ -1,0 +1,110 @@
+import json
+import os
+
+import ollama
+
+from ..retriever.vectorstore import similarity_search
+from .state import RAGState
+
+LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
+
+
+def retrieve(state: RAGState) -> dict:
+    query = state.get("query", state["question"])
+    docs = similarity_search(query, k=4)
+    return {"documents": docs}
+
+
+def generate(state: RAGState) -> dict:
+    docs_text = "\n\n".join(
+        f"[Doc {i+1}] {d['page_content']}"
+        for i, d in enumerate(state["documents"])
+    )
+    system_prompt = (
+        "You are a precise assistant. Answer the question using ONLY the "
+        "provided context. If the context doesn't contain enough information, "
+        "say 'I don't have enough information.'"
+    )
+    user_prompt = f"Context:\n{docs_text}\n\nQuestion: {state['question']}"
+
+    response = ollama.chat(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        options={"temperature": 0},
+    )
+    return {"answer": response["message"]["content"]}
+
+
+def critique(state: RAGState) -> dict:
+    docs_text = "\n\n".join(
+        f"[Doc {i+1}] {d['page_content']}"
+        for i, d in enumerate(state["documents"])
+    )
+    system_prompt = (
+        "You are a hallucination detector. Given a question, an answer, and "
+        "source documents, determine if the answer is fully grounded in the "
+        "documents.\nRespond ONLY with valid JSON."
+    )
+    user_prompt = (
+        f"Question: {state['question']}\n"
+        f"Answer: {state['answer']}\n"
+        f"Documents: {docs_text}\n\n"
+        'Respond with JSON: {"verdict": "grounded" | "hallucinated" | '
+        '"insufficient", "reason": "..."}'
+    )
+
+    response = ollama.chat(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        format="json",
+        options={"temperature": 0},
+    )
+    content = response["message"]["content"]
+    try:
+        result = json.loads(content)
+    except json.JSONDecodeError:
+        result = {"verdict": "insufficient", "reason": "Failed to parse critic"}
+
+    return {
+        "verdict": result.get("verdict", "insufficient"),
+        "verdict_reason": result.get("reason", ""),
+    }
+
+
+def rewrite_query(state: RAGState) -> dict:
+    system_prompt = "You are a search query optimizer."
+    user_prompt = (
+        "The following query failed to retrieve useful documents:\n"
+        f"Original query: {state['query'] or state['question']}\n"
+        f"Critic feedback: {state['verdict_reason']}\n\n"
+        "Rewrite the query to be more specific and likely to find relevant "
+        "information.\nReturn only the rewritten query, nothing else."
+    )
+
+    response = ollama.chat(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        options={"temperature": 0},
+    )
+    new_query = response["message"]["content"].strip()
+    return {"query": new_query, "retry_count": state["retry_count"] + 1}
+
+
+def finalize(state: RAGState) -> dict:
+    if state["verdict"] == "grounded":
+        return {"final_answer": state["answer"]}
+    return {
+        "final_answer": (
+            "I couldn't find sufficient information to answer your question. "
+            "Please try rephrasing or providing more details."
+        )
+    }
