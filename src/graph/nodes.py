@@ -16,6 +16,9 @@ def retrieve(state: RAGState) -> dict:
 
 
 def generate(state: RAGState) -> dict:
+    if not state.get("documents"):
+        return {"answer": "No relevant documents were found to answer the question. Try rephrasing."}
+
     docs_text = "\n\n".join(
         f"[Doc {i+1}] {d['page_content']}"
         for i, d in enumerate(state["documents"])
@@ -27,18 +30,24 @@ def generate(state: RAGState) -> dict:
     )
     user_prompt = f"Context:\n{docs_text}\n\nQuestion: {state['question']}"
 
-    response = ollama.chat(
-        model=LLM_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        options={"temperature": 0},
-    )
-    return {"answer": response["message"]["content"]}
+    try:
+        response = ollama.chat(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            options={"temperature": 0},
+        )
+        return {"answer": response["message"]["content"]}
+    except Exception as e:
+        return {"answer": f"Generation failed due to LLM error: {e}"}
 
 
 def critique(state: RAGState) -> dict:
+    if not state.get("documents"):
+        return {"verdict": "insufficient", "verdict_reason": "No documents retrieved"}
+
     docs_text = "\n\n".join(
         f"[Doc {i+1}] {d['page_content']}"
         for i, d in enumerate(state["documents"])
@@ -56,16 +65,20 @@ def critique(state: RAGState) -> dict:
         '"insufficient", "reason": "..."}'
     )
 
-    response = ollama.chat(
-        model=LLM_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        format="json",
-        options={"temperature": 0},
-    )
-    content = response["message"]["content"]
+    try:
+        response = ollama.chat(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            format="json",
+            options={"temperature": 0},
+        )
+        content = response["message"]["content"]
+    except Exception as e:
+        return {"verdict": "insufficient", "verdict_reason": f"Critic LLM error: {e}"}
+
     try:
         result = json.loads(content)
     except json.JSONDecodeError:
@@ -87,15 +100,19 @@ def rewrite_query(state: RAGState) -> dict:
         "information.\nReturn only the rewritten query, nothing else."
     )
 
-    response = ollama.chat(
-        model=LLM_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        options={"temperature": 0},
-    )
-    new_query = response["message"]["content"].strip()
+    try:
+        response = ollama.chat(
+            model=LLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            options={"temperature": 0},
+        )
+        new_query = response["message"]["content"].strip()
+    except Exception as e:
+        new_query = state.get("query") or state["question"]
+
     return {"query": new_query, "retry_count": state["retry_count"] + 1}
 
 

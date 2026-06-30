@@ -21,7 +21,6 @@ def build_graph() -> StateGraph:
         "critique",
         route_after_critique,
         {
-            "grounded": "finalize",
             "rewrite_query": "rewrite_query",
             "finalize": "finalize",
         },

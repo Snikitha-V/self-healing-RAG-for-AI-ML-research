@@ -16,7 +16,7 @@ def test_routes_grounded_to_finalize():
     assert route_after_critique(state) == "finalize"
 
 
-def test_routes_insufficient_to_finalize():
+def test_routes_insufficient_to_rewrite():
     state: RAGState = {
         "question": "test",
         "query": "test",
@@ -27,7 +27,7 @@ def test_routes_insufficient_to_finalize():
         "retry_count": 0,
         "final_answer": "",
     }
-    assert route_after_critique(state) == "finalize"
+    assert route_after_critique(state) == "rewrite_query"
 
 
 def test_routes_hallucinated_with_retries_to_rewrite():

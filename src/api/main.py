@@ -1,3 +1,6 @@
+import asyncio
+import functools
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -26,23 +29,28 @@ def get_graph():
 
 
 @app.post("/query", response_model=QueryResponse)
-def query(request: QueryRequest):
+async def query(request: QueryRequest):
     graph = get_graph()
-    result = graph.invoke(
-        {
-            "question": request.question,
-            "query": request.question,
-            "documents": [],
-            "answer": "",
-            "verdict": "",
-            "verdict_reason": "",
-            "retry_count": 0,
-            "final_answer": "",
-        }
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        functools.partial(
+            graph.invoke,
+            {
+                "question": request.question,
+                "query": request.question,
+                "documents": [],
+                "answer": "",
+                "verdict": "",
+                "verdict_reason": "",
+                "retry_count": 0,
+                "final_answer": "",
+            },
+        ),
     )
     return QueryResponse(answer=result["final_answer"], retry_count=result["retry_count"])
 
 
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok"}

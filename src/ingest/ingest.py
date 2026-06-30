@@ -92,8 +92,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max",
         type=int,
-        default=10000,
-        help="Max ArXiv papers to fetch (default: 10000)",
+        default=100,
+        help="Max ArXiv papers to fetch (default: 100)",
     )
     args = parser.parse_args()
 
