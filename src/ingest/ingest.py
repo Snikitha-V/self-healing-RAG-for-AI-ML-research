@@ -9,9 +9,8 @@ from ..retriever.embedder import get_embedder
 from ..retriever.vectorstore import add_documents, ensure_collection
 
 ARXIV_QUERY = (
-    "(cat:cs.AI OR cat:cs.CL) AND "
-    "(LLM OR \"retrieval augmented generation\" OR hallucination "
-    "OR \"large language model\" OR RAG) AND "
+    "(cat:cs.AI OR cat:cs.CL OR cat:cs.CV OR cat:cs.LG OR cat:cs.IR "
+    "OR cat:cs.MA OR cat:cs.NE OR cat:cs.RO) AND "
     "submittedDate:[202301010000 TO 202412312359]"
 )
 
@@ -92,8 +91,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max",
         type=int,
-        default=100,
-        help="Max ArXiv papers to fetch (default: 100)",
+        default=1000,
+        help="Max ArXiv papers to fetch (default: 1000)",
     )
     args = parser.parse_args()
 
