@@ -98,7 +98,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     embedder = get_embedder()
-    dim = embedder.get_sentence_embedding_dimension()
+    dim = embedder.get_embedding_dimension()
     ensure_collection(dim)
 
     if args.arxiv:
