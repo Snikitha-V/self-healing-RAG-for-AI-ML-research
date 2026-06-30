@@ -2,7 +2,7 @@
 
 # 🔁 Self-Healing RAG for AI/ML Research
 
-### *A self-healing RAG pipeline over **10,000+ ArXiv papers** with a critic agent that detects hallucinated citations and auto-reformulates queries*
+### *A self-healing RAG pipeline over **1,000+ ArXiv papers** with a critic agent that detects hallucinated citations and auto-reformulates queries — spanning the full breadth of AI/ML research, not just LLMs*
 
 <br>
 
@@ -10,8 +10,8 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-Cyclical-FF6F00?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
 [![Ollama](https://img.shields.io/badge/Ollama-llama3.1:8b-000000?logo=ollama&logoColor=white)](https://ollama.ai)
 [![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-7B1FA2?logo=qdrant&logoColor=white)](https://qdrant.tech)
-[![ArXiv](https://img.shields.io/badge/ArXiv-10K_Papers-B31B1B?logo=arxiv&logoColor=white)](https://arxiv.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![ArXiv](https://img.shields.io/badge/ArXiv-8_Categories-B31B1B?logo=arxiv&logoColor=white)](https://arxiv.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Async-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -19,7 +19,8 @@
 > **✨ "What if your RAG system could check its own homework — and fix its mistakes before you ever saw them?"**
 
 **Self-Healing RAG** is a retrieval-augmented generation pipeline with a built-in **critic-retry loop**,
-indexed over **10,000+ ArXiv AI/ML papers (2023–2024)** on LLMs, RAG, and hallucination.
+indexed over **1,000+ ArXiv AI/ML papers (2023–2024)** across **8 research categories** — NLP, computer vision,
+robotics, neural networks, information retrieval, multi-agent systems, and more.
 It retrieves papers, generates an answer, then a *critic agent* evaluates that answer for hallucinations.
 If grounded — it's returned. If not — the system reformulates the query and retries, up to 2 times,
 before gracefully falling back.
@@ -28,7 +29,40 @@ before gracefully falling back.
 
 <br>
 
-## 🧠 The Meta Angle
+## 🧠 What Makes This Different From Every Other RAG Demo
+
+Most RAG projects are linear chains: retrieve → generate → done. They don't check their own work.
+Here's why this one is different:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Most RAG demos:                                                     │
+│                                                                     │
+│    [Search] ──► [Answer] ──► done (hope it's correct)               │
+│                                                                     │
+│  This one:                                                          │
+│                                                                     │
+│    [Search] ──► [Answer] ──► [CRITIC] ──► grounded? → return       │
+│                      ↑                    │  hallucinated? → retry  │
+│                      └──── [Rewrite] ←────┘  insufficient? → retry  │
+│                                                                     │
+│  The system doesn't just answer — it audits itself autonomously.    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| What Makes It Unique | How |
+|---|---|
+| **Self-auditing** | Every answer is checked by a critic LLM before delivery — not after |
+| **Auto-recovery** | Detects hallucinations, reformulates the search, and retries up to 2x |
+| **Not LLM-only** | Indexes papers from 8 categories — CV, robotics, agents, NLP, etc. |
+| **100% local** | No API keys, no cloud, no data leaving your machine |
+| **Live data** | Paper source is the live ArXiv API, not a static dump |
+| **Idempotent ingest** | Re-run ingest freely — duplicates are automatically skipped |
+| **Async API** | Non-blocking FastAPI handles concurrent requests properly |
+
+<br>
+
+### The Meta Angle That Still Holds
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -43,21 +77,21 @@ before gracefully falling back.
 └──────────────────────────────────────────────────────────┘
 ```
 
-Testing a hallucination detector on papers **about** hallucination is not just a demo —
+Testing a hallucination detector on papers **about** AI is not just a demo —
 it's a genuinely hard evaluation. Answers contain verifiable facts (authors, methods,
 benchmark scores) that the critic must check against the source abstracts.
 
 <br>
 
-## 📚 Dataset — ArXiv AI/ML Papers
+## 📚 Dataset — ArXiv AI/ML Papers (Broad Spectrum)
 
 | Property | Value |
 |---|---|
 | **Source** | [ArXiv API](https://arxiv.org) — live research data, no auth needed |
-| **Categories** | `cs.AI` (Artificial Intelligence), `cs.CL` (Computation & Language) |
-| **Topics** | LLMs, RAG, hallucination, large language models, retrieval augmented generation |
+| **Categories** | `cs.AI`, `cs.CL`, `cs.CV`, `cs.LG`, `cs.IR`, `cs.MA`, `cs.NE`, `cs.RO` |
+| **Topics** | NLP, computer vision, reinforcement learning, neural networks, robotics, multi-agent systems, information retrieval, and more |
 | **Date range** | January 2023 – December 2024 |
-| **Scale** | 10,000+ papers (configurable via `--max`) |
+| **Scale** | 1,000+ papers (configurable via `--max`) |
 | **Storage** | 1 document = 1 abstract, with full metadata (title, authors, categories, arxiv_id, pdf_url) |
 
 Each paper abstract is a dense, fact-packed paragraph. When the pipeline answers a question
@@ -70,7 +104,7 @@ Was author Y actually a co-author?"*
 
 ```
                     ┌───────────┐
-                    │  RETRIEVE │  ← cosine search over 10K ArXiv paper embeddings
+                    │  RETRIEVE │  ← cosine search over 1K+ ArXiv paper embeddings
                     └─────┬─────┘
                           │
                           ▼
@@ -107,7 +141,7 @@ The critic never sleeps. Every answer is checked before delivery.
 | **LLM** | [llama3.1:8b](https://ollama.ai) via [Ollama](https://ollama.ai) | Fully open-source, runs locally, no API costs |
 | **Embeddings** | [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) via [Sentence-Transformers](https://sbert.net) | 384-dim, fast, effective for semantic search |
 | **Vector Store** | [Qdrant](https://qdrant.tech) (local persistent mode) | RocksDB-backed, no Docker needed, cosine similarity |
-| **Data Source** | [ArXiv API](https://info.arxiv.org/help/api/index.html) | 10,000+ live AI/ML papers, no authentication required |
+| **Data Source** | [ArXiv API](https://info.arxiv.org/help/api/index.html) | 1,000+ live AI/ML papers, no authentication required |
 | **API** | [FastAPI](https://fastapi.tiangolo.com) | Auto-docs, Pydantic validation, async-ready |
 
 <br>
@@ -165,20 +199,24 @@ pip install -r requirements.txt
 cp .env.example .env    # defaults are fine for local setup
 ```
 
-### Ingest 10,000+ ArXiv Papers
+### Ingest 1,000+ ArXiv Papers (Broad AI/ML)
 
 ```bash
 python -m src.ingest.ingest --arxiv
 ```
 
 This fetches papers from ArXiv by the query:
-> `(cat:cs.AI OR cat:cs.CL) AND (LLM OR "retrieval augmented generation" OR hallucination OR "large language model" OR RAG)`
+> `(cat:cs.AI OR cat:cs.CL OR cat:cs.CV OR cat:cs.LG OR cat:cs.IR OR cat:cs.MA OR cat:cs.NE OR cat:cs.RO)`
+
+Spanning NLP, computer vision, machine learning, information retrieval,
+multi-agent systems, neural networks, and robotics — all with one command.
 
 Each paper's abstract is embedded with `all-MiniLM-L6-v2` and indexed in Qdrant (local persistence).
+Re-running the ingest is safe — duplicates are **automatically skipped**.
 
-For a smaller test batch:
+For a larger batch:
 ```bash
-python -m src.ingest.ingest --arxiv --max 500
+python -m src.ingest.ingest --arxiv --max 5000
 ```
 
 ### Launch the API
@@ -194,7 +232,7 @@ Interactive docs at **http://localhost:8000/docs** 🎯
 ```bash
 curl -X POST "http://localhost:8000/query" \
   -H "Content-Type: application/json" \
-  -d '{"question": "What methods does the RAG paper by Lewis et al. propose?"}'
+  -d '{"question": "What are the latest deep learning architectures for medical 3D image processing?"}'
 ```
 
 **Try tricking it:**
@@ -217,7 +255,7 @@ pytest tests/ -v
 
 | Step | What Happens |
 |---|---|
-| **1. Retrieve** | Embed the query → cosine search across 10K ArXiv paper embeddings in Qdrant → return top 4 abstracts |
+| **1. Retrieve** | Embed the query → cosine search across 1K+ ArXiv paper embeddings in Qdrant → return top 4 abstracts |
 | **2. Generate** | Prompt `llama3.1:8b` with the paper abstracts as context → produce an answer |
 | **3. Critique** | Prompt the same LLM (in JSON mode) to check: *"Is every claim in this answer supported by the papers? Any invented authors, methods, or benchmarks?"* |
 | **4a. Grounded ✅** | Answer is safe → pass to `final_answer` → done |
@@ -236,7 +274,7 @@ pytest tests/ -v
 | `LLM_MODEL` | `llama3.1:8b` | Model for generation & critique |
 | `EMBED_MODEL_NAME` | `all-MiniLM-L6-v2` | Embedding model |
 | `QDRANT_PATH` | `./qdrant_db` | Qdrant persistent storage path |
-| `ARXIV_MAX_RESULTS` | `10000` | Max ArXiv papers to fetch |
+| `ARXIV_MAX_RESULTS` | `1000` | Max ArXiv papers to fetch |
 
 <br>
 
@@ -247,7 +285,7 @@ The routing logic is fully unit-tested without Ollama or Qdrant running:
 | Test | Scenario |
 |---|---|
 | `test_routes_grounded_to_finalize` | Happy path — grounded answer returned immediately |
-| `test_routes_insufficient_to_finalize` | Graceful degradation when docs don't contain info |
+| `test_routes_insufficient_to_rewrite` | Insufficient docs → rewrite query and retry |
 | `test_routes_hallucinated_with_retries_to_rewrite` | Recovery cycle triggers query rewrite |
 | `test_routes_hallucinated_exhausted_to_finalize` | Max retries hit → safe fallback |
 | `test_graph_builds` | Compilation smoke test |
